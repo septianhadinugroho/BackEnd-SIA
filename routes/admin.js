@@ -8,6 +8,7 @@ const {
   updateKeuangan, 
   manageHakAkses, 
   manageAkademik, 
+  getAdminDashboard,
   exportData 
 } = require('../handlers/admin');
 const schemas = require('../schemas/admin');
@@ -224,4 +225,17 @@ module.exports = [
       tags: ['api', 'admin'],
     },
   },
+  {
+  method: 'GET',
+  path: '/admin/dashboard',
+  handler: getAdminDashboard, // Anda akan membuat fungsi ini di handlers/admin.js
+  options: {
+    auth: {
+      strategy: 'jwt',
+      scope: ['admin'],
+    },
+    description: 'Mengambil data dashboard untuk admin',
+    tags: ['api', 'admin'],
+  },
+},
 ];

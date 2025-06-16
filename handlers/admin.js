@@ -283,4 +283,59 @@ module.exports = {
       .header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
       .header('Content-Disposition', `attachment; filename=${modul}_${Date.now()}.xlsx`);
   },
+  getAdminDashboard: async (request, h) => {
+    const { supabase } = request.server;
+
+    try {
+      // Contoh: Ambil jumlah total pengguna berdasarkan role
+      const { count: totalMahasiswa, error: errMahasiswa } = await supabase
+        .from('users')
+        .select('*', { count: 'exact' })
+        .eq('role', 'mahasiswa');
+      if (errMahasiswa) throw errMahasiswa;
+
+      const { count: totalAdmin, error: errAdmin } = await supabase
+        .from('users')
+        .select('*', { count: 'exact' })
+        .eq('role', 'admin');
+      if (errAdmin) throw errAdmin;
+
+      const { count: totalPemangkuKebijakan, error: errPemangku } = await supabase
+        .from('users')
+        .select('*', { count: 'exact' })
+        .eq('role', 'pemangku_kebijakan');
+      if (errPemangku) throw errPemangku;
+
+      // Contoh: Ambil statistik keuangan (jumlah tagihan lunas dan belum lunas)
+      const { count: tagihanLunas, error: errLunas } = await supabase
+        .from('keuangan')
+        .select('*', { count: 'exact' })
+        .eq('status', 'lunas');
+      if (errLunas) throw errLunas;
+
+      const { count: tagihanBelumBayar, error: errBelumBayar } = await supabase
+        .from('keuangan')
+        .select('*', { count: 'exact' })
+        .eq('status', 'belum_bayar');
+      if (errBelumBayar) throw errBelumBayar;
+
+      const dashboardData = {
+        statistik_pengguna: {
+          total_mahasiswa: totalMahasiswa,
+          total_admin: totalAdmin,
+          total_pemangku_kebijakan: totalPemangkuKebijakan,
+        },
+        statistik_keuangan: {
+          tagihan_lunas: tagihanLunas,
+          tagihan_belum_bayar: tagihanBelumBayar,
+        },
+        // Tambahkan data atau statistik lain sesuai kebutuhan dashboard admin
+      };
+
+      return response.success(h, dashboardData, 'Data dashboard admin berhasil diambil');
+    } catch (error) {
+      console.error('Error fetching admin dashboard data:', error.message);
+      return response.error(h, `Gagal mengambil data dashboard admin: ${error.message}`, 500);
+    }
+  },
 };

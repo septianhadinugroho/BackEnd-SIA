@@ -232,22 +232,25 @@ module.exports = {
       return response.error(h, 'Token tidak valid atau tidak ditemukan', 401);
     }
 
-    const { id: userId, role } = credentials;
+    const { id: userId, role } = credentials; // userId and role are already available from JWT
 
-    // Verifikasi user di Supabase
-    const { data: user, error } = await supabase
+    // Optionally fetch nama_lengkap from profiles if required for this endpoint's response
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('user_id, nama_lengkap, role')
+      .select('nama_lengkap') // Only select nama_lengkap, as 'role' is in the 'users' table
       .eq('user_id', userId)
       .single();
 
-    if (error || !user) {
-      return response.error(h, 'User tidak ditemukan', 404);
+    // Handle potential error from fetching profile, specifically ignoring 'no rows found' (PGRST116)
+    if (profileError && profileError.code !== 'PGRST116') {
+        console.error('Supabase Profile Fetch Error (verifyToken):', profileError);
+        return response.error(h, 'Gagal mengambil data profil', 500);
     }
 
     return response.success(h, {
-      user_id: user.user_id,
-      role: user.role || role,
+      user_id: userId,
+      role: role, // Use the role from the already validated credentials
+      nama_lengkap: profile ? profile.nama_lengkap : null, // Include nama_lengkap if a profile was found
     });
   },
 };
