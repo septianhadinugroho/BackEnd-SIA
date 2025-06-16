@@ -1,5 +1,5 @@
 const Hapi = require('@hapi/hapi');
-const Jwt = require('jsonwebtoken');
+// const Jwt = require('jsonwebtoken'); // HAPUS ATAU KOMEN BARIS INI
 const dotenv = require('dotenv');
 const { createClient } = require('@supabase/supabase-js');
 const authRoutes = require('./routes/authRoutes');
@@ -10,17 +10,19 @@ const policyMakerRoutes = require('./routes/policyMakerRoutes');
 dotenv.config();
 
 const init = async () => {
-  const server = Hapi.server({
-    port: process.env.PORT || 2004,
-    host: 'localhost',
-    routes: {
-      cors: {
-        origin: ['http://localhost:5173'],
-        credentials: true,
-        additionalHeaders: ['Authorization']
-      }
-    }
-  });
+    const server = Hapi.server({
+        port: process.env.PORT,
+        host: 'localhost',
+        routes: {
+            cors: {
+                origin: ['http://localhost:5173'], // Izinkan origin frontend Anda
+                headers: ['Accept', 'Authorization', 'Content-Type', 'If-None-Match'], // Header yang diizinkan
+                additionalHeaders: ['X-Requested-With'], // Header tambahan jika ada
+                exposedHeaders: ['Content-Disposition'], // Header yang diekspos ke browser
+                credentials: true // Izinkan kredensial (cookies, authorization headers)
+            }
+        }
+    });
 
   // Initialize Supabase
   server.app.supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);

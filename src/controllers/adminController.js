@@ -3,9 +3,14 @@ const supabase = require('../config/supabase');
 
 const crudUser = async (request, h) => {
   const { method } = request;
+  // Perbaiki: Konversi metode ke huruf kapital untuk perbandingan case-insensitive
+  const httpMethod = method.toUpperCase(); // <-- Perubahan di sini!
+  console.log(`[crudUser] Menerima metode HTTP: ${httpMethod} untuk path: ${request.path}`);
+
   const { id, email, password, role, profile } = request.payload;
 
-  if (method === 'POST') {
+  if (httpMethod === 'POST') { // <-- Gunakan httpMethod yang sudah diubah
+    console.log('[crudUser] Memproses permintaan POST (membuat pengguna baru)');
     if (!email || !password || !role) {
       return h.response({ message: 'Email, password, and role are required' }).code(400);
     }
@@ -17,12 +22,16 @@ const crudUser = async (request, h) => {
       .single();
 
     if (error) {
+      if (error.code === '23505') {
+        return h.response({ message: 'Email already exists' }).code(409);
+      }
       return h.response({ message: `Error creating user: ${error.message}` }).code(500);
     }
     return h.response(data).code(201);
   }
 
-  if (method === 'PUT') {
+  if (httpMethod === 'PUT') { // <-- Gunakan httpMethod yang sudah diubah
+    console.log('[crudUser] Memproses permintaan PUT (memperbarui pengguna)');
     if (!id) {
       return h.response({ message: 'User ID is required' }).code(400);
     }
@@ -48,7 +57,8 @@ const crudUser = async (request, h) => {
     return h.response(data);
   }
 
-  if (method === 'DELETE') {
+  if (httpMethod === 'DELETE') { // <-- Gunakan httpMethod yang sudah diubah
+    console.log('[crudUser] Memproses permintaan DELETE (menghapus pengguna)');
     if (!id) {
       return h.response({ message: 'User ID is required' }).code(400);
     }
@@ -68,6 +78,7 @@ const crudUser = async (request, h) => {
     return h.response({ message: 'User deleted successfully' });
   }
 
+  console.log(`[crudUser] Metode tidak diizinkan atau tidak ditangani: ${httpMethod}`);
   return h.response({ message: 'Method not allowed' }).code(405);
 };
 
