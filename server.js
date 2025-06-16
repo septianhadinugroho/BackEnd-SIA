@@ -7,19 +7,36 @@ const init = async () => {
     host: 'localhost',
     routes: {
       cors: {
-        origin: ['http://localhost:5173'], // Izinkan origin frontend
+        origin: ['http://localhost:5173'],
         headers: ['Accept', 'Authorization', 'Content-Type', 'If-None-Match'],
         additionalHeaders: ['X-Requested-With'],
         exposedHeaders: ['Content-Disposition'],
-        credentials: true, // Izinkan kredensial
+        credentials: true,
       },
     },
   });
 
-  // Tambahkan log untuk memastikan server dimulai
   console.log('Memulai server pada port:', process.env.PORT || 3000);
 
-  // Register plugins
+  // Global error handling
+  server.ext('onPreResponse', (request, h) => {
+    const response = request.response;
+    if (response.isBoom) {
+      console.error('Request Error:', {
+        method: request.method,
+        path: request.path,
+        error: response.output.payload,
+        stack: response.stack,
+      });
+      return h.response({
+        status: 'error',
+        message: response.message || 'An internal server error occurred',
+        statusCode: response.output.statusCode,
+      }).code(response.output.statusCode);
+    }
+    return h.continue;
+  });
+
   try {
     console.log('Mendaftarkan plugin...');
     await server.register([
@@ -32,14 +49,13 @@ const init = async () => {
     throw err;
   }
 
-  // Tambahkan rute root untuk menunjukkan server berjalan
   server.route({
     method: 'GET',
     path: '/',
     handler: (request, h) => {
       return h.response({
         status: 'success',
-        message: 'API Satu Data Mahasiswa sedang berjalan! Gunakan endpoint seperti /auth/login, /mahasiswa/dashboard, dll.',
+        message: 'API Satu Data Mahasiswa sedang berjalan! Gunakan endpoint seperti /auth/login, /auth/register, dll.',
         version: '1.0.0',
         availableEndpoints: [
           '/auth/login',
@@ -51,13 +67,12 @@ const init = async () => {
       }).code(200);
     },
     options: {
-      auth: false, // Tidak memerlukan autentikasi untuk root
+      auth: false,
       description: 'Rute root untuk memeriksa status server',
       tags: ['api'],
     },
   });
 
-  // Register routes
   try {
     console.log('Memuat rute...');
     server.route([
@@ -72,7 +87,6 @@ const init = async () => {
     throw err;
   }
 
-  // Tambahkan log untuk setiap permintaan
   server.ext('onRequest', (request, h) => {
     console.log(`[${new Date().toISOString()}] ${request.method.toUpperCase()} ${request.path}`);
     return h.continue;

@@ -18,18 +18,19 @@ exports.plugin = {
         const { supabase } = request.server;
 
         const { data: user, error } = await supabase
-          .from('profiles')
-          .select('user_id, role')
-          .eq('user_id', id)
+          .from('users') // Ganti ke tabel users
+          .select('id, role')
+          .eq('id', id)
           .single();
 
         if (error || !user) {
+          console.error('JWT Validation Error:', error);
           return { isValid: false };
         }
 
         return {
           isValid: true,
-          credentials: { id: user.user_id, role: user.role || role },
+          credentials: { id: user.id, role: user.role || role },
         };
       },
     });

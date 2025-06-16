@@ -30,13 +30,14 @@ module.exports = [
     path: '/auth/register',
     handler: register,
     options: {
-      auth: false, // Tidak memerlukan autentikasi untuk registrasi
+      auth: false,
       validate: {
         payload: Joi.object({
           identifier: Joi.string().max(50).required(),
           email: Joi.string().email().max(255).required(),
           password: Joi.string().min(6).required(),
           role: Joi.string().valid('mahasiswa', 'admin', 'pemangku_kebijakan').required(),
+          nama_lengkap: Joi.string().max(255).required(), // Tambah nama_lengkap
         }),
         failAction: (request, h, err) => {
           return h.response({
