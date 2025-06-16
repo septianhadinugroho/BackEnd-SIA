@@ -1,53 +1,37 @@
 const Jwt = require('@hapi/jwt');
-require('dotenv').config();
 
-module.exports = {
-  name: 'jwtAuth',
-  version: '1.0.0',
-  register: async (server) => {
-    // Daftarkan plugin JWT
+exports.plugin = {
+  name: 'jwt-auth',
+  register: async (server, options) => {
     await server.register(Jwt);
 
-    // Definisikan strategi autentikasi JWT
     server.auth.strategy('jwt', 'jwt', {
-      keys: process.env.JWT_SECRET, // Gunakan JWT_SECRET dari .env
+      keys: process.env.JWT_SECRET,
       verify: {
         aud: false,
         iss: false,
         sub: false,
-        nbf: true,
-        exp: true,
-        maxAgeSec: 604800, // 7 hari (sesuai token expiration di handler)
-        timeSkewSec: 15,
+        maxAgeSec: 86400, // 1 hari
       },
       validate: async (artifacts, request, h) => {
-        const { supabase } = request.server;
         const { id, role } = artifacts.decoded.payload;
+        const { supabase } = request.server;
 
-        // Verifikasi pengguna di database
-        const { data, error } = await supabase
-          .from('users')
-          .select('id, role')
-          .eq('id', id)
+        const { data: user, error } = await supabase
+          .from('profiles')
+          .select('user_id, role')
+          .eq('user_id', id)
           .single();
 
-        if (error || !data) {
-          return { isValid: false };
-        }
-
-        // Pastikan role sesuai
-        if (data.role !== role) {
+        if (error || !user) {
           return { isValid: false };
         }
 
         return {
           isValid: true,
-          credentials: { id: data.id, role: data.role },
+          credentials: { id: user.user_id, role: user.role || role },
         };
       },
     });
-
-    // Tetapkan strategi default
-    server.auth.default('jwt');
   },
 };

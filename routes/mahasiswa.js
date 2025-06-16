@@ -8,7 +8,8 @@ const {
   getKeuangan, 
   submitPermohonan, 
   getNotifikasi, 
-  markNotifikasiRead 
+  markNotifikasiRead,
+  verifyToken
 } = require('../handlers/mahasiswa');
 const schemas = require('../schemas/mahasiswa');
 
@@ -173,6 +174,16 @@ module.exports = [
       },
       description: 'Menandai notifikasi sebagai dibaca',
       tags: ['api', 'mahasiswa'],
+    },
+  },
+  {
+    method: 'GET',
+    path: '/auth/verify',
+    handler: verifyToken,
+    options: {
+      auth: 'jwt', // Middleware JWT, tanpa scope biar semua role bisa akses
+      description: 'Verifikasi token JWT dan kembalikan data user',
+      tags: ['api', 'auth'],
     },
   },
 ];

@@ -223,4 +223,31 @@ module.exports = {
 
     return response.success(h, data, 'Notifikasi ditandai sebagai dibaca');
   },
+
+  verifyToken: async (request, h) => {
+    const { supabase } = request.server;
+    const { credentials } = request.auth;
+
+    if (!credentials) {
+      return response.error(h, 'Token tidak valid atau tidak ditemukan', 401);
+    }
+
+    const { id: userId, role } = credentials;
+
+    // Verifikasi user di Supabase
+    const { data: user, error } = await supabase
+      .from('profiles')
+      .select('user_id, nama_lengkap, role')
+      .eq('user_id', userId)
+      .single();
+
+    if (error || !user) {
+      return response.error(h, 'User tidak ditemukan', 404);
+    }
+
+    return response.success(h, {
+      user_id: user.user_id,
+      role: user.role || role,
+    });
+  },
 };

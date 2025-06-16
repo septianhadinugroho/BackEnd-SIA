@@ -1,71 +1,79 @@
-const bcrypt = require('bcrypt');
+const { response } = require('../utils/response');
+const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
-const response = require('../utils/response');
+const bcrypt = require('bcrypt');
 
-const login = async (request, h) => {
-  const { identifier, password } = request.payload;
-  const { supabase } = request.server;
+module.exports = {
+  login: async (request, h) => {
+    const { supabase } = request.server;
+    const { identifier, password } = request.payload;
 
-  // Cari pengguna berdasarkan identifier
-  const { data: user, error } = await supabase
-    .from('users')
-    .select('id, identifier, password, role')
-    .eq('identifier', identifier)
-    .single();
+    // Cek user berdasarkan email atau identifier
+    const { data: user, error } = await supabase
+      .from('profiles')
+      .select('user_id, email, password, role')
+      .or(`email.eq.${identifier},user_id.eq.${identifier}`)
+      .single();
 
-  if (error || !user) {
-    return h.response(response.error('Identifikasi atau kata sandi salah', 401)).code(401);
-  }
-
-  // Verifikasi password
-  const isValid = await bcrypt.compare(password, user.password);
-  if (!isValid) {
-    return h.response(response.error('Identifikasi atau kata sandi salah', 401)).code(401);
-  }
-
-  // Buat token JWT
-  const token = request.server.methods.jwt.sign({
-    userId: user.id,
-    role: user.role,
-  });
-
-  return h.response(response.success({ token }, 'Login berhasil')).code(200);
-};
-
-const register = async (request, h) => {
-  const { identifier, email, password, role } = request.payload;
-  const { supabase } = request.server;
-
-  // Validasi role
-  if (!['mahasiswa', 'admin', 'pemangku_kebijakan'].includes(role)) {
-    return h.response(response.error('Role tidak valid', 400)).code(400);
-  }
-
-  // Hash password
-  const hashedPassword = await bcrypt.hash(password, 10);
-
-  // Simpan ke database
-  const { data, error } = await supabase
-    .from('users')
-    .insert({
-      id: uuidv4(),
-      identifier,
-      email,
-      password: hashedPassword,
-      role,
-    })
-    .select('id')
-    .single();
-
-  if (error) {
-    if (error.code === '23505') {
-      return h.response(response.error('Identifier atau email sudah digunakan', 400)).code(400);
+    if (error || !user) {
+      return response.error(h, 'Email/ID atau password salah', 401);
     }
-    console.error('Supabase error:', error);
-    return h.response(response.error('Gagal mendaftar pengguna', 500)).code(500);
-  }
 
-  return h.response(response.success({ user_id: data.id }, 'Registrasi berhasil')).code(201);
+    // Verifikasi password
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (!isValidPassword) {
+      return response.error(h, 'Email/ID atau password salah', 401);
+    }
+
+    // Generate token
+    const token = jwt.sign(
+      { id: user.user_id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '1d' }
+    );
+
+    return response.success(h, {
+      user_id: user.user_id,
+      role: user.role,
+      token,
+    });
+  },
+
+  register: async (request, h) => {
+    const { supabase } = request.server;
+    const { identifier, email, password, role } = request.payload;
+
+    // Cek apakah email atau identifier udah ada
+    const { data: existingUser, error: checkError } = await supabase
+      .from('profiles')
+      .select('user_id')
+      .or(`email.eq.${email},user_id.eq.${identifier}`)
+      .single();
+
+    if (existingUser) {
+      return response.error(h, 'Email atau ID sudah terdaftar', 400);
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Insert user baru
+    const { data: newUser, error } = await supabase
+      .from('profiles')
+      .insert({
+        user_id: identifier || uuidv4(), // Pakai identifier atau generate UUID
+        email,
+        password: hashedPassword,
+        role,
+        nama_lengkap: 'Nama Placeholder', // Ganti kalau FE kirim nama
+      })
+      .select('user_id, role')
+      .single();
+
+    if (error) {
+      return response.error(h, 'Gagal mendaftar', 500);
+    }
+
+    return response.success(h, {}, 'Registrasi berhasil', 201);
+  },
 };
-
-module.exports = { login, register };
