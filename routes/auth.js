@@ -1,5 +1,5 @@
 const Joi = require('joi');
-const { login, register } = require('../handlers/auth');
+const { login, register, verifyToken } = require('../handlers/auth');;
 
 module.exports = [
   {
@@ -48,6 +48,16 @@ module.exports = [
         },
       },
       description: 'Registrasi pengguna baru',
+      tags: ['api', 'auth'],
+    },
+  },
+  {
+    method: 'GET',
+    path: '/auth/verify',
+    handler: verifyToken, // Pastikan handler ini diimpor dari handlers/auth
+    options: {
+      auth: 'jwt', // Middleware JWT, tanpa scope biar semua role bisa akses
+      description: 'Verifikasi token JWT dan kembalikan data user',
       tags: ['api', 'auth'],
     },
   },
