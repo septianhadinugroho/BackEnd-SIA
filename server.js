@@ -43,6 +43,7 @@ const init = async () => {
       require('./plugins/jwt'),
       require('./plugins/supabase'),
     ]);
+    console.log('Plugin JWT config:', server.auth.strategies);
     console.log('Plugin berhasil didaftarkan');
   } catch (err) {
     console.error('Gagal mendaftarkan plugin:', err);

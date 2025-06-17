@@ -37,7 +37,7 @@ module.exports = {
           scope: [user.role] // Pastikan 'scope' adalah properti yang berisi ARRAY dari peran
         },
         process.env.JWT_SECRET, // Menggunakan secret key dari environment variables
-        { expiresIn: '1d' } // Token akan kedaluwarsa dalam 1 hari
+        { expiresIn: '7d' }
       );
 
       // Mengembalikan respons sukses dengan ID pengguna, peran, dan token

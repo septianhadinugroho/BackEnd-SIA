@@ -11,23 +11,29 @@ exports.plugin = {
         aud: false,
         iss: false,
         sub: false,
-        maxAgeSec: 86400, // 1 hari
+        maxAgeSec: 604800
       },
       validate: async (artifacts, request, h) => {
-        const { id, role } = artifacts.decoded.payload;
+        const { id, role, scope } = artifacts.decoded.payload;
         const { supabase } = request.server;
+        console.log('Decoded payload:', { id, role, scope });
 
         const { data: user, error } = await supabase
-          .from('users') // Ganti ke tabel users
+          .from('users')
           .select('id, role')
           .eq('id', id)
           .single();
 
-        if (error || !user) {
-          console.error('JWT Validation Error:', error);
+        if (error) {
+          console.error('Supabase error:', error);
+          return { isValid: false };
+        }
+        if (!user) {
+          console.log('User not found for id:', id);
           return { isValid: false };
         }
 
+        console.log('Database user:', user);
         return {
           isValid: true,
           credentials: { id: user.id, role: user.role || role },
